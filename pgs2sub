@@ -1,0 +1,31 @@
+#!/bin/python
+import os
+import sys
+
+os.system("mkdir subtitles")
+
+os.system(f'mkvmerge -o tmp.mks --no-audio --no-video {sys.argv[1]}')
+os.system(f'mkvinfo tmp.mks > subtitles/languages')
+
+languages = []
+
+with open('subtitles/languages', 'r') as file:
+    lines = file.readlines()
+    for line in lines:
+        if line.startswith('|  + Language (IETF BCP 47): '):
+            languages.append(line[-3:-1])
+
+i=0
+error1=0
+subtitles = sys.argv[1]
+while error1==0:
+    error1 = os.system(f'mkvextract tracks tmp.mks {i}:subtitles/output{i}.sup')
+    if error1==0:
+        error2 = os.system(f'bdsup2subpp --language {languages[i]} -o subtitles/input{i}.sub subtitles/output{i}.sup')
+        if error2==0:
+            subtitles = subtitles + f' subtitles/input{i}.sub'
+    i = i+1
+
+os.system(f'mkvmerge -o new_{sys.argv[1]} --no-subtitles {subtitles}')
+os.system(f'rm -r subtitles')
+os.system(f'rm -r tmp.mks')
